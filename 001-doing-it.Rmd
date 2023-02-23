@@ -112,7 +112,8 @@ scaff_groups <- bind_rows(
   scaffs
 ) %>%
   extract(id, into = "num", regex = "scaff_group([0-9][0-9][0-9])", convert = TRUE, remove = FALSE) %>%
-  mutate(mh_label = ifelse(num <= 34, num, str_c("Unk-", num)))
+  mutate(mh_label = ifelse(num <= 34, num, str_c("Unk-", num))) %>%
+  select(-num)
 
 write_tsv(scaff_groups, "config/scaffold_groups.tsv")
 
@@ -129,5 +130,12 @@ cd mega-post-bcf-exploratory-snakeflows
 # now put the VCF into a directory called data
 rclone copy --drive-shared-with-me gdrive-rclone:chinook_WGS_processed/aa-DeCorrupted-Single-Big-VCF data
 
+# get a node
+srun -c 20 -pty /bin/bash
+
+# activate snakemake conda env
+conda activate snakemake-7.7.0
+
+# dry-run
 
 ```
