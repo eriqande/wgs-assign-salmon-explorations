@@ -75,3 +75,14 @@ sample_list %>%
   cat(., sep = "\n", file = "outputs/sample_names.txt")
 
 ```
+
+With that, we are ready to get all the stuff we need to make a Beagle file, etc.
+```sh
+git clone git@github.com:eriqande/mega-post-bcf-exploratory-snakeflows.git
+cd mega-post-bcf-exploratory-snakeflows
+
+# now put the VCF into a directory called data
+rclone copy --drive-shared-with-me gdrive-rclone:chinook_WGS_processed/aa-DeCorrupted-Single-Big-VCF data
+
+
+```
