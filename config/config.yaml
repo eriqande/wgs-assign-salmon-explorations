@@ -49,7 +49,7 @@ pcangsd:
 # these are all the standard parameters in the file paths
 main_params:
   standard:
-    bcf: testy
+    bcf: cal_chinook
     filt: snps05
     thin_spec: "0_0"
     maf: 0.05
