@@ -29,7 +29,7 @@ bcf:
 # that we might want to use, and we give them nicknames. The 
 # nicknames/keys here correspond to wildcard 
 bcftools_opts:
-  snps05: -v snps -m 2 -M 2 -i 'F_MISSING < 0.30 && (MLEAF > 0.05 || MLEAF < 0.95)'
+  snps05: -v snps -m 2 -M 2 -i 'F_MISSING < 0.20 && (MLEAF > 0.05 || MLEAF < 0.95)'
 
 
 #### SETTING SECTIONS #####
