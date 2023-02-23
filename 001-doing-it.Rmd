@@ -137,5 +137,29 @@ srun -c 20 -pty /bin/bash
 conda activate snakemake-7.7.0
 
 # dry-run
+snakemake -np --use-conda --configfile ../config/config.yaml
 
+# which gives us this:
+[Thu Feb 23 05:16:46 2023]
+localrule all:
+    input: results/bcf_cal_chinook/filt_snps05/all/thin_0_0/beagle_gl/maf_0.05/beagle-gl/beagle-gl.gz
+    jobid: 0
+    resources: tmpdir=/tmp
+
+Job stats:
+job                           count    min threads    max threads
+--------------------------  -------  -------------  -------------
+all                               1              1              1
+bcf2beagle_gl_gather              1              1              1
+bcf2beagle_gl_scatter            49              1              1
+bcf_samps_and_filt_gather         1              1              1
+bcf_samps_and_filt_scatter       49              1              1
+bcf_thin_gather                   1              1              1
+bcf_thin_scatter                 49              1              1
+total                           151              1              1
+
+# so we run it for real:
+snakemake -p --cores 20 --use-conda --configfile ../config/config.yaml
+
+# that failed on the thin scatter steps, but 
 ```
