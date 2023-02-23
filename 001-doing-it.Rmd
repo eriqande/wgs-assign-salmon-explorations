@@ -30,6 +30,7 @@ That is also 64 fish. Once again, we take the 12 lowest DNA concentration fish
 out of these to be the "unknowns" that we will assign.
 
 
+First, get the sample lists all together.
 ```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
 meta <- read_csv("data/wgs-chinook-samples.csv")
@@ -72,11 +73,55 @@ write_csv(sample_list, file = "outputs/sample_list.csv")
 
 sample_list %>% 
   pull(vcf_name) %>%
-  cat(., sep = "\n", file = "outputs/sample_names.txt")
+  cat(., sep = "\n", file = "config/sample_names.txt")
 
 ```
 
-With that, we are ready to get all the stuff we need to make a Beagle file, etc.
+Now, get the FAI file and scaffold groups and things that we need.
+```{r}
+# read the old chroms and scaffold groups file to put them together
+
+# drop chromosome 28 from it
+chroms <- read_tsv("data/chromosomes.tsv") %>%
+  mutate(id = sprintf("scaff_group%03d", 1:n()), .before = chrom) %>%
+  mutate(
+    start = 1,
+    stop = num_bases, 
+    angsd_chrom = str_replace(chrom, "_", "-")
+  ) %>%
+  select(-num_bases) %>%
+  filter(chrom != "NC_037124.1")
+  
+
+scaffs <- read_tsv("data/scaffold_groups.tsv") %>%
+  mutate(
+    start = 1,
+    stop = len,
+    angsd_chrom = str_replace(chrom, "_", "-")
+  ) %>%
+  select(-len, -cumul) %>%
+  extract(id, into = "int", regex = "scaff_group([0-9][0-9][0-9])", convert = TRUE) %>%
+  mutate(
+    int = sprintf("scaff_group%03d", int + 34)
+  ) %>%
+  rename(id = int)
+
+# put those together
+scaff_groups <- bind_rows(
+  chroms,
+  scaffs
+) %>%
+  extract(id, into = "num", regex = "scaff_group([0-9][0-9][0-9])", convert = TRUE, remove = FALSE) %>%
+  mutate(mh_label = ifelse(num <= 34, num, str_c("Unk-", num)))
+
+write_tsv(scaff_groups, "config/scaffold_groups.tsv")
+
+```
+
+
+
+
+With that, we are ready to get all the stuff we need to make a Beagle GL file, etc.
 ```sh
 git clone git@github.com:eriqande/mega-post-bcf-exploratory-snakeflows.git
 cd mega-post-bcf-exploratory-snakeflows
