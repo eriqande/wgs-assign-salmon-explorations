@@ -1,0 +1,77 @@
+---
+title: "Assigning Chinook salmon at Various Read Depth Levels"
+output: html_notebook
+---
+
+# In Brief
+
+I am going to do GSI between Klamath and Sacto.  This will be pretty
+straightforward, because they are quite diverged.  But I want to explore
+super-low coverage in this.
+
+**Klamath samples**
+    
+    - Trinity Fall
+    - Trinity Spring
+    - Salmon Fall
+    - Salmon Spring
+
+That is 64 fish.  We will take the 12 lowest DNA concentration fish out of these
+as the fish to be assigned.
+
+**Central Valley samples**
+
+    - Feather Fall
+    - Feather Spring
+    - Coleman Late Fall
+    - San Joaquin
+    
+That is also 64 fish. Once again, we take the 12 lowest DNA concentration fish
+out of these to be the "unknowns" that we will assign.
+
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+meta <- read_csv("data/wgs-chinook-samples.csv")
+
+sample_list <- meta %>%
+  mutate(
+    ref_pop = case_when(
+      Population %in% c(
+        "Coleman Hatchery Late Fall", 
+        "Feather River Hatchery Fall", 
+        "Feather River Hatchery Spring",
+        "San Joaquin River Fall"
+        ) ~ "Sacramento",
+      Population %in% c(
+        "Trinity River Hatchery Fall",
+        "Trinity River Hatchery Spring",
+        "Salmon River Fall",
+        "Salmon River Spring"
+        ) ~ "Klamath",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(ref_pop)) %>%
+  arrange(ref_pop, `Concentration (ng/ul)`) %>%
+  group_by(ref_pop) %>%
+  mutate(
+    group = case_when(
+      1:n() <= 12 ~ "mixture",
+      TRUE ~ "reference"
+    )
+  ) %>%
+  ungroup() %>%
+  select(vcf_name, NMFS_DNA_ID, ref_pop, group) %>%
+  arrange(desc(group), ref_pop) %>% 
+  mutate(idx = 1:n(), .before = vcf_name)
+
+dir.create("outputs", showWarnings = FALSE)
+write_csv(sample_list, file = "outputs/sample_list.csv")
+
+
+sample_list %>% 
+  pull(vcf_name) %>%
+  cat(., sep = "\n", file = "outputs/sample_names.txt")
+
+```
