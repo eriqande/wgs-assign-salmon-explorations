@@ -29,6 +29,7 @@ as the fish to be assigned.
 That is also 64 fish. Once again, we take the 12 lowest DNA concentration fish
 out of these to be the "unknowns" that we will assign.
 
+# Getting sample lists, etc
 
 First, get the sample lists all together.
 ```{r, message=FALSE, warning=FALSE}
@@ -120,7 +121,7 @@ write_tsv(scaff_groups, "config/scaffold_groups.tsv")
 ```
 
 
-
+# Getting a Big Beagle File
 
 With that, we are ready to get all the stuff we need to make a Beagle GL file, etc.
 ```sh
@@ -162,3 +163,164 @@ snakemake -p --cores 20 --use-conda --configfile ../config/config.yaml
 ```
 
 - With F_MISSING < 0.3 we get 955313 sites.  
+- With F_MISSING < 0.2 we get 272111 sites.
+
+I am going to go ahead with the F_MISSING  < 0.2 for now.  
+
+## Making the reference and the mixture files
+
+We will use cut to get the individuals that we want out of that beagle-gl.gz file
+and we will make a reference-beagle and mixture-beagle file.
+
+Note that the reference individuals are individuals 1 up to 104.  Those
+fish start at columns (3 * idx) + 1.  So we will want to get columns
+1 to 315 for that.
+```sh
+# getting reference fish
+zcat mega-post-bcf-exploratory-snakeflows/results/bcf_cal_chinook/filt_snps05/all/thin_0_0/beagle-gl/beagle-gl.gz |  cut -f1-315 | gzip -c > outputs/reference-beagle-gl.gz
+
+# getting mixture fish. Columns 1-3,316-387
+zcat mega-post-bcf-exploratory-snakeflows/results/bcf_cal_chinook/filt_snps05/all/thin_0_0/beagle-gl/beagle-gl.gz |  cut -f1-3,316-387 | gzip -c > outputs/mixture-beagle-gl.gz
+```
+
+
+
+
+
+# Doing WGSassign
+
+## Install WGSassign
+
+```sh
+(base) [node07: wgs-assign-salmon-explorations]--% pwd
+/home/eanderson/scratch/PROJECTS/wgs-assign-salmon-explorations
+
+git clone https://github.com/mgdesaix/WGSassign.git
+cd WGSassign
+mamba env create -f environment.yml
+conda activate WGSassign
+pip3 install -e .
+```
+That all happened without a hitch.
+
+## Make reference NumPy freqs
+
+First, make a file that has the population of origin of each individual.
+```{r}
+sample_list %>%
+  filter(group == "reference") %>%
+  select(vcf_name, ref_pop) %>%
+  write_tsv(file = "outputs/ref_pops.tsv", col_names = FALSE)
+```
+
+Then, run WGSassign:
+```sh
+WGSassign --beagle outputs/reference-beagle-gl.gz --pop_af_IDs outputs/ref_pops.tsv --get_reference_af --out outputs/reference_af --threads 20
+
+# when that finished it told us that:
+Column order of populations is: ['Klamath' 'Sacramento']
+```
+
+
+## Assign the "unknown" fish
+
+```sh
+WGSassign --beagle outputs/mixture-beagle-gl.gz  --pop_af_file outputs/reference_af.pop_af.npy  --get_pop_like --out outputs/pop_likes --threads 20
+
+# here are the results.  The first 12 fish are Klamath the values
+# are log-likelihoods values in favor of Klamath.  It is spot on,
+# perhaps not surprisingly.  
+(WGSassign) [node07: wgs-assign-salmon-explorations]--% awk '{print ++n, $1 - $2}' outputs/pop_likes.pop_like.txt
+1 11262.4
+2 2235.59
+3 1652.53
+4 8513.55
+5 672.719
+6 247.312
+7 395.562
+8 5084.17
+9 5241.86
+10 7327.03
+11 2914.73
+12 52.5
+13 -13340.2
+14 -12965.6
+15 -11322.1
+16 -11282.6
+17 -11021.4
+18 -13077.3
+19 -10637.2
+20 -12410.4
+21 -12342.8
+22 -11515.8
+23 -10179.1
+24 -12231
+```
+
+## Do LOO cross-validation
+
+```sh
+ WGSassign --beagle outputs/reference-beagle-gl.gz  --pop_af_IDs outputs/ref_pops.tsv  --get_reference_af --loo --out outputs/LOO --threads 20
+```
+
+That was all good.  Everyone assigned as expected, except for one fish
+from the Klamath that was at a logl right near 0.  Probably a stray from
+elsewhere.
+
+
+# Getting Bams and doing the thinning
+
+I plan to downsample the BAMs of the mixture fish. So, first we need to
+actually get them.
+
+Make a list of the ones we want:
+```sh
+# /home/eanderson/scratch/PROJECTS/wgs-assign-salmon-explorations
+mkdir BAMs
+awk -F"," '/mixture/ {print $2 ".rmdup.bam"; print $2 ".rmdup.bam.bai"}' outputs/sample_list.csv > BAMs/bams-to-include.txt
+
+# copy them to the full-depth directory:
+rclone copy --drive-shared-with-me gdrive-rclone:chinook_WGS_processed BAMs/full-depth --include-from BAMs/bams-to-include.txt
+
+# run samtools stats on them
+module load bio/samtools
+du -h *.bam | awk '{print "samtools stats", $2, ">", $2 ".stats" }'  | parallel -P 20
+```
+
+Now that we have done that, let's get a file that has the fraction genome covered.
+We will calculate that by the number of aligned bases over the total genome length.
+The total genome length is 2458428895.
+
+So:
+```sh
+ for i in BAMs/full-depth/*.bam.stats; do awk -F"\t" -v f=$(basename $i) 'BEGIN {OFS="\t"} $2=="bases mapped (cigar):" {sub(/\.stats/, "", f); print f,  $3/2458428895}' $i; done > BAMs/coverages.tsv
+ 
+ # the file looks like this:
+ DPCh_plate1_A03_S3.rmdup.bam	0.195243
+DPCh_plate1_A04_S4.rmdup.bam	0.27518
+DPCh_plate1_B03_S15.rmdup.bam	0.033987
+DPCh_plate1_C01_S25.rmdup.bam	0.0689217
+DPCh_plate1_D03_S39.rmdup.bam	0.693518
+DPCh_plate1_D04_S40.rmdup.bam	0.587689
+DPCh_plate1_E01_S49.rmdup.bam	1.03536
+DPCh_plate1_F01_S61.rmdup.bam	0.0707827
+DPCh_plate1_G03_S75.rmdup.bam	1.32699
+DPCh_plate1_G04_S76.rmdup.bam	0.0988114
+DPCh_plate1_G08_S80.rmdup.bam	1.49061
+DPCh_plate1_H03_S87.rmdup.bam	0.149337
+DPCh_plate1_H04_S88.rmdup.bam	0.537143
+DPCh_plate1_H06_S90.rmdup.bam	1.73618
+DPCh_plate2_A01_S97.rmdup.bam	1.53112
+DPCh_plate2_A02_S98.rmdup.bam	1.24226
+DPCh_plate2_A04_S100.rmdup.bam	1.23253
+DPCh_plate2_B01_S105.rmdup.bam	1.7638
+DPCh_plate2_B02_S106.rmdup.bam	2.19983
+DPCh_plate2_C01_S113.rmdup.bam	1.41457
+DPCh_plate2_C02_S114.rmdup.bam	1.40087
+DPCh_plate2_D03_S123.rmdup.bam	1.5605
+DPCh_plate2_E03_S131.rmdup.bam	1.52553
+DPCh_plate2_H03_S155.rmdup.bam	1.88931
+```
+
+
+
