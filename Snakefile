@@ -30,7 +30,7 @@ SAMPS=[
 
 rule all:
 	input:
-		expand("BAMs/{cov}X/{s}.bam", cov=[1, 0.1, .05, .01, .005, .001], s=SAMPS)
+		expand("BAMs/{cov}X/{s}.bam", cov=[1.0, 0.1, 0.05, 0.01, 0.005, 0.001], s=SAMPS)
 rule thin_bam:
 	input:
 		bam="BAMs/full-depth/{samp}.rmdup.bam",
@@ -43,5 +43,5 @@ rule thin_bam:
 		"envs/samtools.yaml"
 	shell:
 		" OPT=$(awk '/{wildcards.samp}/ {{ fract = {wildcards.cov} / $2; if(fract < 1) print \" --subsample \", fract; else print \"\"; }}' {input.dps});  "
-		" samtools view $OPT {input.bam} > {output.bam}; "
+		" samtools view $OPT -b {input.bam} > {output.bam}; "
 		" samtools index {output.bam} "
