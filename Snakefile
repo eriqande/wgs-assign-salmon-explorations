@@ -52,3 +52,38 @@ rule thin_bam:
 		"     samtools view --subsample $OPT --subsample-seed {wildcards.rep}  -b {input.bam} > {output.bam}; "
 		"     samtools index {output.bam}; "
 		" fi "
+
+
+# in the following, "mprun" picks out the different vcfs like filt_snps05 and filt_snps05_miss30
+rule get_sites:
+	input:
+		vcf="mega-post-bcf-exploratory-snakeflows/results/bcf_cal_chinook/{mprun}/all/thin_0_0/main.bcf"
+	output:
+		sites="results/sites/{mprun}.txt"
+	conda:
+		"envs/bcftools.yaml"
+	shell:
+		"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} | sed 's/_/-/g;' > {output.sites}"
+
+rule make_bamlist:
+	input: 
+		bam=expand("results/BAMs/{{cov}}X/rep_{{rep}}/{s}.bam", s=SAMPS)
+	output:
+		bamlist="results/bamlists/{cov}X/rep_{rep}/bamlist.txt"
+	shell:
+		"for i in {input.bam}; do echo $i; done > {output.bamlist} "
+
+# this rule creates genotype likelihoods using ANGSD from the sites that we want
+rule angd_likes:
+	input:
+		sites="results/sites/{mprun}.txt"
+		
+		bamlist="results/BAMs/{{cov}}X/rep_{rep}"
+	output:
+		sites="results/angsd_beagle/{cov}X/rep_{rep}/{samp}.bam"
+	conda:
+		"envs/bcftools.yaml"
+	shell:
+		"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} > {output.sites}"
+
+#		"envs/angsd.yaml"
