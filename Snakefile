@@ -31,17 +31,23 @@ SAMPS=[
 rule all:
 	input:
 		expand("BAMs/{cov}X/{s}.bam", cov=[1, 0.1, .05, .01, .005, .001], s=SAMPS)
+
+
+
 rule thin_bam:
 	input:
 		bam="BAMs/full-depth/{samp}.rmdup.bam",
 		bai="BAMs/full-depth/{samp}.rmdup.bam.bai",
 		dps="BAMs/coverages.tsv"
 	output:
-		bam="BAMs/{cov}X/{samp}.bam",
+		bam="BAMs/{cov}X/rep_{rep}/{samp}.bam",
 		#bai="BAMs/{cov}X/{samp}.bam.bai",
 	conda:
 		"envs/samtools.yaml"
 	shell:
-		" OPT=$(awk '/{wildcards.samp}/ {{ fract = {wildcards.cov} / $2; if(fract < 1) print \" --subsample \", fract; else print \"\"; }}' {input.dps});  "
+		" OPT=$(awk '/{wildcards.samp}/ {{ fract = {wildcards.cov} / $2; if(fract < 1) print \" --subsample \", fract, \" --subsample-seed \", {wildcards.rep}; else print \"\"; }}' {input.dps});  "
 		" samtools view $OPT {input.bam} > {output.bam}; "
 		" samtools index {output.bam} "
+
+
+# Now, we n
