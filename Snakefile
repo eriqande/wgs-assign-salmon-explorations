@@ -30,8 +30,7 @@ SAMPS=[
 
 rule all:
 	input:
-		expand("BAMs/{cov}X/{s}.bam", cov=[1, 0.1, .05, .01, .005, .001], s=SAMPS)
-
+		expand("results/BAMs/{cov}X/rep_{rep}/{s}.bam", cov=[1.0, 0.1, 0.05, 0.01, 0.005, 0.001], rep = [1], s=SAMPS)
 
 
 rule thin_bam:
@@ -40,14 +39,16 @@ rule thin_bam:
 		bai="BAMs/full-depth/{samp}.rmdup.bam.bai",
 		dps="BAMs/coverages.tsv"
 	output:
-		bam="BAMs/{cov}X/rep_{rep}/{samp}.bam",
-		#bai="BAMs/{cov}X/{samp}.bam.bai",
+		bam="results/BAMs/{cov}X/rep_{rep}/{samp}.bam",
+		bai="results/BAMs/{cov}X/rep_{rep}/{samp}.bam.bai",
 	conda:
 		"envs/samtools.yaml"
 	shell:
-		" OPT=$(awk '/{wildcards.samp}/ {{ fract = {wildcards.cov} / $2; if(fract < 1) print \" --subsample \", fract, \" --subsample-seed \", {wildcards.rep}; else print \"\"; }}' {input.dps});  "
-		" samtools view $OPT {input.bam} > {output.bam}; "
-		" samtools index {output.bam} "
-
-
-# Now, we n
+		" OPT=$(awk '/{wildcards.samp}/ {{ fract = {wildcards.cov} / $2; if(fract < 1) print fract; else print \"NOSAMPLE\"; }}' {input.dps});  "
+		" if [ $OPT = \"NOSAMPLE\" ]; then "
+		"     ln  {input.bam} {output.bam}; "
+		"     ln  {input.bai} {output.bai}; " 
+		" else "
+		"     samtools view --subsample $OPT --subsample-seed {wildcards.rep}  -b {input.bam} > {output.bam}; "
+		"     samtools index {output.bam}; "
+		" fi "

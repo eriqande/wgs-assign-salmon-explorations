@@ -30,6 +30,7 @@ bcf:
 # nicknames/keys here correspond to wildcard 
 bcftools_opts:
   snps05: -v snps -m 2 -M 2 -i 'F_MISSING < 0.20 && (MLEAF > 0.05 || MLEAF < 0.95)'
+  snps05_miss30: -v snps -m 2 -M 2 -i 'F_MISSING < 0.30 && (MLEAF > 0.05 || MLEAF < 0.95)'
 
 
 #### SETTING SECTIONS #####
@@ -51,6 +52,11 @@ main_params:
   standard:
     bcf: cal_chinook
     filt: snps05
+    thin_spec: "0_0"
+    maf: 0.05
+  standard_fmiss30:
+    bcf: cal_chinook
+    filt: snps05_miss30
     thin_spec: "0_0"
     maf: 0.05
 
@@ -82,5 +88,6 @@ params:
 targets:
   beagle_gl: # this is here in case you just want to 
     - ["standard", "all", "dummy"]
+    - ["standard_fmiss30", "all", "dummy"]
 
 
