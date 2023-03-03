@@ -76,13 +76,12 @@ rule make_bamlist:
 # this rule creates genotype likelihoods using ANGSD from the sites that we want
 rule angd_likes:
 	input:
-		sites="results/sites/{mprun}.txt"
-		
-		bamlist="results/BAMs/{{cov}}X/rep_{rep}"
+		sites="results/sites/{mprun}.txt",
+		bamlist="results/bamlists/{cov}X/rep_{rep}/bamlist.txt"
 	output:
-		sites="results/angsd_beagle/{cov}X/rep_{rep}/{samp}.bam"
+		beagle="results/angsd_beagle/{cov}X/rep_{rep}/out.beagle.gz"
 	conda:
-		"envs/bcftools.yaml"
+		"envs/angsd.yaml"
 	shell:
 		"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} > {output.sites}"
 
