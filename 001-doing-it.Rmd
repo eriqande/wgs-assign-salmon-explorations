@@ -165,7 +165,8 @@ snakemake -p --cores 20 --use-conda --configfile ../config/config.yaml
 - With F_MISSING < 0.3 we get 955313 sites.  
 - With F_MISSING < 0.2 we get 272111 sites.
 
-I am going to go ahead with the F_MISSING  < 0.2 for now.  
+I am going to go ahead with the F_MISSING  < 0.2 for testing,
+but I also made another target `standard_fmiss30` to get the other.  
 
 ## Making the reference and the mixture files
 
@@ -322,5 +323,64 @@ DPCh_plate2_E03_S131.rmdup.bam	1.52553
 DPCh_plate2_H03_S155.rmdup.bam	1.88931
 ```
 
+# Running the fmiss_30 version
+
+I am actually going to just run through what I did above with the
+fmiss_30 version and will overwrite the outputs, etc.
+```sh
+# reference
+zcat mega-post-bcf-exploratory-snakeflows/results/bcf_cal_chinook/filt_snps05_miss30/all/thin_0_0/beagle-gl/beagle-gl.gz |  cut -f1-315 | gzip -c > outputs/reference-beagle-gl.gz
+
+# mixture
+zcat mega-post-bcf-exploratory-snakeflows/results/bcf_cal_chinook/filt_snps05_miss30/all/thin_0_0/beagle-gl/beagle-gl.gz |  cut -f1-3,316-387 | gzip -c > outputs/mixture-beagle-gl.gz
+```
+That was pretty quick.  Now, let's try running WGSassign again:
+```sh
+conda activate WGSassign
+
+# get reference numpy object
+WGSassign --beagle outputs/reference-beagle-gl.gz --pop_af_IDs outputs/ref_pops.tsv --get_reference_af --out outputs/reference_af --threads 20
+
+# infer origin of the "unkown" fish
+WGSassign --beagle outputs/mixture-beagle-gl.gz  --pop_af_file outputs/reference_af.pop_af.npy  --get_pop_like --out outputs/pop_likes --threads 20
+
+# the results
+(WGSassign) [node33: wgs-assign-salmon-explorations]--% awk '{print ++n, $1 - $2}' outputs/pop_likes.pop_like.txt
+1 59757.8
+2 9621.75
+3 7465.06
+4 46442.6
+5 3478.19
+6 762.625
+7 1405.94
+8 26221.5
+9 26502.1
+10 37294.7
+11 13352.3
+12 271.062
+13 -74471.9
+14 -70990.1
+15 -57255.9
+16 -59753.9
+17 -55695.8
+18 -68076.5
+19 -56235.2
+20 -64869.9
+21 -65118.4
+22 -60071.8
+23 -54660.6
+24 -63607.3
+```
+That is pretty much what we expect.  We have about 5 times more markers and
+we have about 5 times greater logl-ratios.  OK.  
+
+
+# Thinning is part of the Snakefile...
+
+I did it for various levels: `cov=[1.0, 0.1, 0.05, 0.01, 0.005, 0.001]` and for
+now for only one rep with:
+```sh
+snakemake -p --use-conda --profile hpcc-profiles/slurm/sedna
+```
 
 
