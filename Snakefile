@@ -46,8 +46,8 @@ rule thin_bam:
 	shell:
 		" OPT=$(awk '/{wildcards.samp}/ {{ fract = {wildcards.cov} / $2; if(fract < 1) print fract; else print \"NOSAMPLE\"; }}' {input.dps});  "
 		" if [ $OPT = \"NOSAMPLE\" ]; then "
-		"     ln  {input.bam} {output.bam}; "
-		"     ln  {input.bai} {output.bai}; " 
+		"     ln -sr {input.bam} {output.bam}; "
+		"     ln -sr {input.bai} {output.bai}; " 
 		" else "
 		"     samtools view --subsample $OPT --subsample-seed {wildcards.rep}  -b {input.bam} > {output.bam}; "
 		"     samtools index {output.bam}; "
