@@ -59,11 +59,13 @@ rule get_sites:
 	input:
 		vcf="mega-post-bcf-exploratory-snakeflows/results/bcf_cal_chinook/{mprun}/all/thin_0_0/main.bcf"
 	output:
-		sites="results/sites/{mprun}.txt"
+		sites="results/sites/{mprun}.txt",
+		chroms="results/sites/{mprun}.chroms"
 	conda:
 		"envs/bcftools.yaml"
 	shell:
-		"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} | sed 's/_/-/g;' > {output.sites}"
+		"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} | sed 's/_/-/g;' > {output.sites}; "
+		" cut -f1 {output.sites} | sort | uniq > {output.chroms}"
 
 rule make_bamlist:
 	input: 
@@ -77,12 +79,16 @@ rule make_bamlist:
 rule angd_likes:
 	input:
 		sites="results/sites/{mprun}.txt",
+		chroms="results/sites/{mprun}.chroms"
 		bamlist="results/bamlists/{cov}X/rep_{rep}/bamlist.txt"
 	output:
 		beagle="results/angsd_beagle/{cov}X/rep_{rep}/out.beagle.gz"
 	conda:
 		"envs/angsd.yaml"
+	threads: 4
 	shell:
-		"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} > {output.sites}"
+		"angsd -out out -GL 1 -rf {input.chroms}          "
+		"    -nThreads {threads} -doGlf 2 -doMajorMinor 3 "
+		"    -bam {input.bamlist} "
 
 #		"envs/angsd.yaml"
