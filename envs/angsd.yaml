@@ -3,4 +3,4 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - angsd == 0.937
+  - angsd == 0.940
