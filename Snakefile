@@ -113,7 +113,7 @@ rule angd_likes:
 # names to not have underscores
 rule concordify_beagle_files:
 	input:
-		beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/out.beagle.gz"
+		beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/out.beagle.gz",
 		big_ref="outputs/reference-beagle-gl.gz"  # should update this to depend on mprun, but is OK for the miss30's
 	output:
 		ref_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz",
