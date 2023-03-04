@@ -83,7 +83,7 @@ rule angd_likes:
 		chroms="results/sites/{mprun}.chroms",
 		bamlist="results/bamlists/{cov}X/rep_{rep}/bamlist.txt"
 	output:
-		beagle="results/angsd_beagle/{cov}X/rep_{rep}/out.beagle.gz"
+		beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/out.beagle.gz"
 	conda:
 		"envs/angsd.yaml"
 	threads: 4
