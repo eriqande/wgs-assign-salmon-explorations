@@ -107,4 +107,21 @@ rule angd_likes:
 		"    -nThreads {threads} -doGlf 2 -doMajorMinor 3 "
 		"    -sites {input.sites} -bam {input.bamlist} "
 
-#		"envs/angsd.yaml"
+# F&^%ck!  Angsd drops sites that don't have any data.
+# So, now we need to make the "reference" beagle file concordant
+# with that.  Part of that is also going to be changing the chromosome
+# names to not have underscores
+concordify_beagle_files:
+	input:
+		beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/out.beagle.gz"
+		big_ref="outputs/reference-beagle-gl.gz"  # should update this to depend on mprun, but is OK for the miss30's
+	output:
+		ref_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz",
+		mix_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/mix.beagle.gz"
+	shell:
+		" # first, deal with the underscores in the chromosome names     "
+		" zcat {input.beagle} | sed 's/^NC_/NC-/g; s/^NW_/NW-/g;' | gzip -c > {output.mix_beagle}; "
+		" # then pick out from the reference beagle sites only those found in the downsampled ones "
+		" (zcat {output.mix_beagle} | awk 'NR>1 {print $1}' ; zcat {input.big_ref}) | "
+		" awk 'BEGIN {{OFS=\"\t\"}} NF==1 {{g[$1]++; next}} /^marker/ || ($1 in g) {{print}}' | gzip -c > {output.ref_beagle} "
+	
