@@ -92,7 +92,7 @@ rule make_bamlist:
 rule angd_likes:
 	input:
 		sites="results/sites/{mprun}.txt",
-		idx="results/sites/{mprun}.txt.idx"
+		idx="results/sites/{mprun}.txt.idx",
 		bn="results/sites/{mprun}.txt.bin",
 		chroms="results/sites/{mprun}.chroms",
 		bamlist="results/bamlists/{cov}X/rep_{rep}/bamlist.txt"
