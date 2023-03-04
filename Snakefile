@@ -111,7 +111,7 @@ rule angd_likes:
 # So, now we need to make the "reference" beagle file concordant
 # with that.  Part of that is also going to be changing the chromosome
 # names to not have underscores
-concordify_beagle_files:
+rule concordify_beagle_files:
 	input:
 		beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/out.beagle.gz"
 		big_ref="outputs/reference-beagle-gl.gz"  # should update this to depend on mprun, but is OK for the miss30's
