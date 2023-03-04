@@ -103,7 +103,9 @@ rule angd_likes:
 		beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/out.beagle.gz"
 	conda:
 		"envs/angsd.yaml"
-	threads: 4
+	resources:
+		time = "3-00:00:00"
+	threads: 8
 	shell:
 		" OUTPRE=$(echo {output.beagle} | sed 's/\.beagle\.gz//g;'); "
 		" angsd -out $OUTPRE -GL 1 -rf {input.chroms}          "
