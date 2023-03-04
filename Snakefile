@@ -65,7 +65,7 @@ rule get_sites:
 	conda:
 		"envs/bcftools.yaml"
 	shell:
-		"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} | sed 's/_/-/g;' > {output.sites}; "
+		"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} > {output.sites}; "
 		" cut -f1 {output.sites} | sort | uniq > {output.chroms}"
 
 rule make_bamlist:
