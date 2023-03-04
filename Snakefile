@@ -122,6 +122,6 @@ rule concordify_beagle_files:
 		" # first, deal with the underscores in the chromosome names     "
 		" zcat {input.beagle} | sed 's/^NC_/NC-/g; s/^NW_/NW-/g;' | gzip -c > {output.mix_beagle}; "
 		" # then pick out from the reference beagle sites only those found in the downsampled ones "
-		" (zcat {output.mix_beagle} | awk 'NR>1 {print $1}' ; zcat {input.big_ref}) | "
+		" (zcat {output.mix_beagle} | awk 'NR>1 {{print $1}}' ; zcat {input.big_ref}) | "
 		" awk 'BEGIN {{OFS=\"\t\"}} NF==1 {{g[$1]++; next}} /^marker/ || ($1 in g) {{print}}' | gzip -c > {output.ref_beagle} "
 	
