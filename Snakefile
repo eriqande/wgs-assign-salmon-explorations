@@ -91,6 +91,6 @@ rule angd_likes:
 		" OUTPRE=$(echo {output.beagle} | sed 's/\.beagle\.gz//g;'); "
 		" angsd -out $OUTPRE -GL 1 -rf {input.chroms}          "
 		"    -nThreads {threads} -doGlf 2 -doMajorMinor 3 "
-		"    -bam {input.bamlist} "
+		"    -sites {input.sites} -bam {input.bamlist} "
 
 #		"envs/angsd.yaml"
