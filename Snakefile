@@ -1,4 +1,4 @@
-localrules: get_sites, make_bamlist
+localrules: get_sites, index_sites, make_bamlist
 
 SAMPS=[
 "DPCh_plate1_A03_S3",
@@ -68,6 +68,18 @@ rule get_sites:
 		"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} > {output.sites}; "
 		" cut -f1 {output.sites} | sort | uniq > {output.chroms}"
 
+rule index_sites:
+	input:
+		sites="results/sites/{mprun}.txt"
+	output:
+		idx="results/sites/{mprun}.txt.idx",
+		bn="results/sites/{mprun}.txt.bin"
+	conda:
+		"envs/angsd.yaml"
+	shell:
+		" angsd sites index {input.sites} "
+
+
 rule make_bamlist:
 	input: 
 		bam=expand("results/BAMs/{{cov}}X/rep_{{rep}}/{s}.bam", s=SAMPS)
@@ -80,6 +92,8 @@ rule make_bamlist:
 rule angd_likes:
 	input:
 		sites="results/sites/{mprun}.txt",
+		idx="results/sites/{mprun}.txt.idx"
+		bn="results/sites/{mprun}.txt.bin",
 		chroms="results/sites/{mprun}.chroms",
 		bamlist="results/bamlists/{cov}X/rep_{rep}/bamlist.txt"
 	output:
