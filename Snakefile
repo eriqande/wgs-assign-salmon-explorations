@@ -1,3 +1,4 @@
+localrules: 
 
 SAMPS=[
 "DPCh_plate1_A03_S3",
@@ -79,7 +80,7 @@ rule make_bamlist:
 rule angd_likes:
 	input:
 		sites="results/sites/{mprun}.txt",
-		chroms="results/sites/{mprun}.chroms"
+		chroms="results/sites/{mprun}.chroms",
 		bamlist="results/bamlists/{cov}X/rep_{rep}/bamlist.txt"
 	output:
 		beagle="results/angsd_beagle/{cov}X/rep_{rep}/out.beagle.gz"
