@@ -105,6 +105,7 @@ rule angd_likes:
 		"envs/angsd.yaml"
 	resources:
 		time = "3-00:00:00"
+		mem_mb = "38400"
 	threads: 8
 	shell:
 		" OUTPRE=$(echo {output.beagle} | sed 's/\.beagle\.gz//g;'); "
