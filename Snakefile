@@ -27,11 +27,14 @@ SAMPS=[
 "DPCh_plate2_H03_S155"
 ]
 
-
+COVIES=[1.0, 0.1, 0.05, 0.01, 0.005, 0.001]
+REPLIST=[1,2,3,4,5]
 
 rule all:
 	input:
-		expand("results/BAMs/{cov}X/rep_{rep}/{s}.bam", cov=[1.0, 0.1, 0.05, 0.01, 0.005, 0.001], rep = [1,2,3,4,5], s=SAMPS)
+		expand("results/BAMs/{cov}X/rep_{rep}/{s}.bam", cov=COVIES, rep = REPLIST, s=SAMPS),
+		expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz", 
+			mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST)
 
 
 rule thin_bam:
