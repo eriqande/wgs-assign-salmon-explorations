@@ -1,4 +1,4 @@
-localrules: 
+localrules: get_sites, make_bamlist
 
 SAMPS=[
 "DPCh_plate1_A03_S3",
@@ -88,7 +88,8 @@ rule angd_likes:
 		"envs/angsd.yaml"
 	threads: 4
 	shell:
-		"angsd -out out -GL 1 -rf {input.chroms}          "
+		" OUTPRE=$(echo {output.beagle} | sed 's/\.beagle\.gz//g;') "
+		"angsd -out $OUTPRE -GL 1 -rf {input.chroms}          "
 		"    -nThreads {threads} -doGlf 2 -doMajorMinor 3 "
 		"    -bam {input.bamlist} "
 
