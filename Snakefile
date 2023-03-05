@@ -154,3 +154,16 @@ rule test_WGSassign_in_snakemake:
     shell:
     	"WGSassign > {output}"
 
+
+rule get_reference_af:
+	input:
+		ref_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz",
+		IDs="outputs/ref_pops.tsv"
+	output:
+		ref_af="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/reference.pop_af.npy"
+	conda:
+		"envs/wgsassign.yaml"
+	threads: 4
+	shell:
+		" WGSassign --beagle {input.ref_beagle} --pop_af_IDs {input.IDs} "
+		" --get_reference_af --out $(dirname {input.ref_beagle})/reference --threads {threads} "
