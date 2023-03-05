@@ -143,4 +143,4 @@ rule get_wgs_assign_installed:
 	conda:
 		"envs/wgsassign.yaml"
 	shell:
-		"echo Yay"
+		"echo Yay > {output}"
