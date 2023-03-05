@@ -131,3 +131,16 @@ rule concordify_beagle_files:
 		" (zcat {output.mix_beagle} | awk 'NR>1 {{print $1}}' ; zcat {input.big_ref}) | "
 		" awk 'BEGIN {{OFS=\"\\t\"}} NF==1 {{g[$1]++; next}} /^marker/ || ($1 in g) {{print}}' | gzip -c > {output.ref_beagle} "
 	
+# THERE WAS A PROBLEM WITH big_ref when I first ran this.  It had two copies of
+# the line for NC-037105.1_76432340
+# That was super messed up.  But I didn't want to re-run it before setting up
+# the WGSassign runs, so I just used awk to remove duplicate lines.
+
+
+rule get_wgs_assign_installed:
+	output:
+		"results/wgs_assign_test.txt"
+	conda:
+		"envs/wgsassign.yaml"
+	shell:
+		"echo Yay"
