@@ -92,7 +92,7 @@ rule make_bamlist:
 		"for i in {input.bam}; do echo $i; done > {output.bamlist} "
 
 # this rule creates genotype likelihoods using ANGSD from the sites that we want
-rule angd_likes:
+rule angsd_likes:
 	input:
 		sites="results/sites/{mprun}.txt",
 		idx="results/sites/{mprun}.txt.idx",
