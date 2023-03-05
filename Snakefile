@@ -144,3 +144,13 @@ rule get_wgs_assign_installed:
 		"envs/wgsassign.yaml"
 	shell:
 		"echo Yay > {output}"
+
+
+rule test_WGSassign_in_snakemake:
+    output:
+    	"results/wgs-assign-spew.txt"
+    conda:
+    	"envs/wgsassign.yaml"
+    shell:
+    	"WGSassign > {output}"
+
