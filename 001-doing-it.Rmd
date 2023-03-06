@@ -297,7 +297,7 @@ So:
  for i in BAMs/full-depth/*.bam.stats; do awk -F"\t" -v f=$(basename $i) 'BEGIN {OFS="\t"} $2=="bases mapped (cigar):" {sub(/\.stats/, "", f); print f,  $3/2458428895}' $i; done > BAMs/coverages.tsv
  
  # the file looks like this:
- DPCh_plate1_A03_S3.rmdup.bam	0.195243
+DPCh_plate1_A03_S3.rmdup.bam	0.195243
 DPCh_plate1_A04_S4.rmdup.bam	0.27518
 DPCh_plate1_B03_S15.rmdup.bam	0.033987
 DPCh_plate1_C01_S25.rmdup.bam	0.0689217
@@ -383,5 +383,140 @@ for only one rep, but then I did it for reps 1--5, with:
 snakemake -p --use-conda --profile hpcc-profiles/slurm/sedna
 ```
 
+Now that those are made, I need to implement genotype likelihoods from ANGSD.
+
+The first step is to make the sites files, etc. etc. 
+
+I now have it where ANGSD makes the new beagle files and then I
+pull out the sites that were in those thinned versions from the original
+reference fish so that they are concordant.  At the end, I now get:
+```
+ref_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz",
+mix_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/mix.beagle.gz"
+```
+where mprun is `filt_snps05_miss30`.
+
+**Note that the full reference beagle file is currently hardwired for filt_snps05_miss30**
+
+These files are currently in rule `all`, so I can get them now by doing:
+```sh
+snakemake -p --use-conda --profile hpcc-profiles/slurm/sedna
+```
+When that got done, I noticed that there was a site that was in the big_ref file
+twice, so that the number  of sites in the ref file were sometimes one greater than
+in the mix file.  I can fix that by simply running an awk script that removes the
+duplicated line in the output.  It looks like this:
+```sh
+(base) [node36: filt_snps05_miss30]--% pwd
+/home/eanderson/scratch/PROJECTS/wgs-assign-salmon-explorations/results/angsd_beagle/filt_snps05_miss30
+(base) [node36: filt_snps05_miss30]--% for i in */*; do echo $i; zcat  $i/fixed.ref.beagle.gz | wc; zcat $i/mix.beagle.gz | wc;   done
+```
+After that I checked that they all had the right number of lines, and then I
+moved fixed.ref.beagle.gz onto ref.beagle.gz.
+
+To run it though WGSassign, I made a wgsassign.yaml for the environment,
+and then build it manually in that environment.
+
+So, I did:
+```sh
+snakemake --use-conda -p --cores 1 results/wgs_assign_test.txt
+```
+and then I did:
+```
+git clone git@github.com:mgdesaix/WGSassign.git tmp-WGSassign
+cd tmp-WGSassign/
+conda activate ../.snakemake/conda/a770ebebda7eb561253a7ae0ca2c08e7
+python setup.py build_ext --inplace
+pip3 install -e .
+```
+After that, it appears that I have to leave tmp-WGSassign in place.
+
+Anyways, I finished that all up and then ran snakemake like this:
+```sh
+snakemake -p --use-conda --cores 20  results/collated_mixture_likes.txt
+```
+And then I got the file I wanted and put it into:
+```
+results/collated_mixture_likes.txt
+```
+Now, we just have to summarize it:
+```{r}
+# first get the meta data so that I know where they are all from
+mix_samples <- read_csv(
+  "outputs/sample_list.csv",
+) %>%
+  filter(group == "mixture") %>%
+  select(-idx)
+
+# then get the order in the mixfiles of the fish
 
 
+# then get the results:
+log_likes <- read_table(
+  "results/collated_mixture_likes.txt",
+  col_names = c("file", "idx", "klam_like", "sacto_like")
+) %>%
+  mutate(logl_for_klam = klam_like - sacto_like) %>%
+  extract(
+    file, 
+    into = c("cov", "rep"),
+    regex = "miss30/([0-9.]+X)/rep_([0-9]+)/mix",
+    remove = FALSE
+  )
+
+# then get the order of the fish in those files
+# (this comes from their order in the Snakefile from which
+# the bamlist is made)
+bamlist_order <- read_tsv("results/bam_order.txt", col_names = "vcf_name") %>%
+  mutate(idx = 1:n())
+
+# and get the full-depth coverages:
+coverages <- read_tsv("results/coverages.tsv") %>%
+  extract(BAM, into = "vcf_name", regex = "(DP.*)\\.rmdup.bam")
+
+# and now we bung all those together:
+ready_to_go <- log_likes %>%
+  left_join(bamlist_order, by = "idx") %>%
+  left_join(mix_samples, by = "vcf_name") %>%
+  left_join(coverages, by = "vcf_name")
+
+```
+
+And now we can look and see how those values change for different coverage.  Gotta make a plot
+```{r}
+for_plot <- ready_to_go %>%
+  mutate(
+    logl_to_correct_pop = case_when(
+      ref_pop == "Klamath" ~ klam_like - sacto_like,
+      ref_pop == "Sacramento" ~ sacto_like - klam_like,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(NMFS_DNA_ID, ref_pop, depth, cov, rep, logl_to_correct_pop) %>%
+  mutate(cov_numeric = as.numeric(str_replace(cov, "X", ""))) %>%
+  filter(cov_numeric < depth) %>%
+  arrange(ref_pop, depth) %>%
+  mutate(samp_name = sprintf("%s: %s (%.2f)", ref_pop, NMFS_DNA_ID, depth)) %>%
+  mutate(samp_name_f = factor(samp_name, levels = unique(samp_name)))
+
+ggplot(for_plot, aes(y = samp_name_f, x = logl_to_correct_pop, fill = cov)) + 
+  geom_point(shape = 21) +
+  scale_x_continuous(trans = scales::pseudo_log_trans(sigma = 1, base = 10), breaks = c(-5, -3, 0, 2, 5, 10, 25, 50, 100, 500, 2000, 5000, 50000))
+```
+
+When I plotted that I realized that I needed to add 0.5X.  So I made that change in the
+Snakefile and then did:
+```sh
+snakemake -np --use-conda   results/collated_mixture_likes.txt
+-----------------------  -------  -------------  -------------
+angsd_likes                    5              1              1
+collate_mixture_likes          1              1              1
+concordify_beagle_files        5              1              1
+get_reference_af               5              1              1
+infer_mixture_fish             5              1              1
+make_bamlist                   5              1              1
+thin_bam                     120              1              1
+total                        146              1              1
+```
+
+Then I let that run on one node on SEDNA
