@@ -184,7 +184,7 @@ rule infer_mixture_fish:
 		"results/logs/infer_mixture_fish/{mprun}/{cov}X/rep_{rep}/log.txt"
 	shell:
 		" WGSassign --beagle {input.mix_beagle}  --pop_af_file {input.ref_npy} "
-		"  --get_pop_like --out $(dirname {output.mixfish})/mixfish --threads {threads} "
+		"  --get_pop_like --out $(dirname {output.mixfish})/mixfish --threads {threads} > {log} 2>&1 "
 
 rule collate_mixture_likes:
 	input:
