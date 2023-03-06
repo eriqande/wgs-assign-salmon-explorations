@@ -164,6 +164,36 @@ rule get_reference_af:
 	conda:
 		"envs/wgsassign.yaml"
 	threads: 4
+	log:
+		"results/logs/get_reference_af/{mprun}/{cov}X/rep_{rep}/log.txt"
 	shell:
 		" WGSassign --beagle {input.ref_beagle} --pop_af_IDs {input.IDs} "
-		" --get_reference_af --out $(dirname {input.ref_beagle})/reference --threads {threads} "
+		" --get_reference_af --out $(dirname {input.ref_beagle})/reference --threads {threads} > {log} 2>&1 "
+
+
+rule infer_mixture_fish:
+	input:
+		ref_npy="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/reference.pop_af.npy",
+		mix_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/mix.beagle.gz",
+	output:
+		mixfish="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/mixfish.pop_like.txt",
+	conda:
+		"envs/wgsassign.yaml"
+	threads: 4
+	log:
+		"results/logs/infer_mixture_fish/{mprun}/{cov}X/rep_{rep}/log.txt"
+	shell:
+		" WGSassign --beagle {input.mixbeagle}  --pop_af_file {input.ref_npy} "
+		"  --get_pop_like --out $(dirname {output.mixfish})/mixfish --threads {threads} "
+
+rule collate_mixture_likes:
+	input:
+		expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/mix.beagle.gz",
+			mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST)
+	output:
+		"results/collated_mixture_likes.txt"
+	shell:
+		" for i in {input}; do awk -v file=$i '{{print file, ++n, $0}}' $i; done > {output} "
+
+
+
