@@ -188,7 +188,7 @@ rule infer_mixture_fish:
 
 rule collate_mixture_likes:
 	input:
-		expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/mix.beagle.gz",
+		expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/mixfish.pop_like.txt",
 			mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST)
 	output:
 		"results/collated_mixture_likes.txt"
