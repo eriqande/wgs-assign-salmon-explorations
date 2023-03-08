@@ -1,5 +1,13 @@
-localrules: get_sites, index_sites, make_bamlist
+# This is a Snakefile to run WGSassign multiple times
+# on data from BAM files downsampled to various degrees.
 
+#### INPUT VARIABLES ####
+
+
+# Names of the samples for downsampling. For this to run
+# there must be a bam named BAMs/full_depth/{sample_name}.rmdup.bam
+# where {sample_name} is the name of each of the samples in SAMPS.
+# Those BAM files should be indexed, too.
 SAMPS=[
 "DPCh_plate1_A03_S3",
 "DPCh_plate1_A04_S4",
@@ -27,14 +35,47 @@ SAMPS=[
 "DPCh_plate2_H03_S155"
 ]
 
-COVIES=[1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]
+# A list of average read depths you would like to 
+# downsample the SAMPS bams to.  FD does them at
+# full depth.
+COVIES=["FD", 1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]
+
+# list of replicate numbers.  [1,2,3,4,5] will do 5 reps, numbered
+# 1 through 5.
 REPLIST=[1,2,3,4,5]
+
+
+# Specifier for the initial condition of the reference BEAGLE file
+# that you want to use. The beagle file must be in a directory
+# that is named for this variable. 
+MPRUN="filt_snps05_miss30"
+
+
+#### INPUT FILES ####
+
+# here are the files that have to be in place for this to work:
+
+# The big beagle.gz file that holds the genotype likelihoods
+# of the reference samples.  {mprun} let's you set different
+# directories for different data sets
+# --> reference/{mprun}/reference-beagle-gl.gz
+
+# the TSV file that tells us what pop each sample in the
+# reference sample file is from
+# --> reference/{mprun}/ref_pops.tsv
+
+
+
+#### Snakefile Rules   #####
+
+localrules: get_sites, index_sites, make_bamlist
 
 rule all:
 	input:
-		expand("results/BAMs/{cov}X/rep_{rep}/{s}.bam", cov=COVIES, rep = REPLIST, s=SAMPS),
-		expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz", 
-			mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST)
+		"results/collated_mixture_likes.txt"
+		#expand("results/BAMs/{cov}X/rep_{rep}/{s}.bam", cov=COVIES, rep = REPLIST, s=SAMPS),
+		#expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz", 
+		#	mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST)
 
 
 rule thin_bam:
@@ -48,7 +89,7 @@ rule thin_bam:
 	conda:
 		"envs/samtools.yaml"
 	shell:
-		" OPT=$(awk '/{wildcards.samp}/ {{ fract = {wildcards.cov} / $2; if(fract < 1) print fract; else print \"NOSAMPLE\"; }}' {input.dps});  "
+		" OPT=$(awk '/{wildcards.samp}/ {{ wc = \"{wildcards.cov}\"; if(wc == \"FD\") {{print \"NOSAMPLE\"; exit}} fract = wc / $2; if(fract < 1) print fract; else print \"NOSAMPLE\"; }}' {input.dps});  "
 		" if [ $OPT = \"NOSAMPLE\" ]; then "
 		"     ln -sr {input.bam} {output.bam}; "
 		"     ln -sr {input.bai} {output.bai}; " 
@@ -59,17 +100,31 @@ rule thin_bam:
 
 
 # in the following, "mprun" picks out the different vcfs like filt_snps05 and filt_snps05_miss30
+# rule get_sites:
+# 	input:
+# 		vcf="mega-post-bcf-exploratory-snakeflows/results/bcf_cal_chinook/{mprun}/all/thin_0_0/main.bcf"
+# 	output:
+# 		sites="results/sites/{mprun}.txt",
+# 		chroms="results/sites/{mprun}.chroms"
+# 	conda:
+# 		"envs/bcftools.yaml"
+# 	shell:
+# 		"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} > {output.sites}; "
+# 		" cut -f1 {output.sites} | sort | uniq > {output.chroms}"
+
+# this gets a list of the sites from the reference beagle file
+# that ANGSD will do genotype likelihood calculations at from the
+# BAMs
 rule get_sites:
 	input:
-		vcf="mega-post-bcf-exploratory-snakeflows/results/bcf_cal_chinook/{mprun}/all/thin_0_0/main.bcf"
+		beag="reference/{mprun}/reference-beagle-gl.gz"
 	output:
 		sites="results/sites/{mprun}.txt",
 		chroms="results/sites/{mprun}.chroms"
-	conda:
-		"envs/bcftools.yaml"
 	shell:
-		"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} > {output.sites}; "
-		" cut -f1 {output.sites} | sort | uniq > {output.chroms}"
+		"zcat {input.beag} | awk 'NR>1 {{print $1, $2, $3}}' | sed 's/_/ /g; s/-/_/g;' | "
+        " awk '{{printf(\"%s\t%s\t%s\t%s\n\", $1, $2, $3, $4);}}' > {output.sites}; "
+		" cut -f1 {output.sites} | sort | uniq > {output.chroms} "
 
 rule index_sites:
 	input:
@@ -120,7 +175,7 @@ rule angsd_likes:
 rule concordify_beagle_files:
 	input:
 		beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/out.beagle.gz",
-		big_ref="outputs/reference-beagle-gl.gz"  # should update this to depend on mprun, but is OK for the miss30's
+		big_ref="reference/{mprun}/reference-beagle-gl.gz"  # should update this to depend on mprun, but is OK for the miss30's
 	output:
 		ref_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz",
 		mix_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/mix.beagle.gz"
@@ -131,11 +186,6 @@ rule concordify_beagle_files:
 		" (zcat {output.mix_beagle} | awk 'NR>1 {{print $1}}' ; zcat {input.big_ref}) | "
 		" awk 'BEGIN {{OFS=\"\\t\"}} NF==1 {{g[$1]++; next}} /^marker/ || ($1 in g) {{print}}' | gzip -c > {output.ref_beagle} "
 	
-# THERE WAS A PROBLEM WITH big_ref when I first ran this.  It had two copies of
-# the line for NC-037105.1_76432340
-# That was super messed up.  But I didn't want to re-run it before setting up
-# the WGSassign runs, so I just used awk to remove duplicate lines.
-
 
 rule get_wgs_assign_installed:
 	output:
@@ -158,7 +208,7 @@ rule test_WGSassign_in_snakemake:
 rule get_reference_af:
 	input:
 		ref_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz",
-		IDs="outputs/ref_pops.tsv"
+		IDs="reference/{mprun}/ref_pops.tsv"
 	output:
 		ref_af="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/reference.pop_af.npy"
 	conda:
