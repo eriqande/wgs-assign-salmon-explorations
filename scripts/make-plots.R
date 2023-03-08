@@ -1,10 +1,10 @@
 
 
 
-sample_info <- "BAMs/sample_info.tsv"
-sample_order <- "results/sample_order.txt"
-sim_output <- "results/collated_mixture_likes.txt"
-outfig <- "results/chinook-logls-and-depths-fig.pdf"
+sample_info <- snakemake@input$sample_info
+sample_order <- snakemake@input$sample_order
+sim_output <- snakemake@input$sim_output
+outfig <- snakemake@output$outfig
 
 library(tidyverse)
 
