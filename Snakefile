@@ -86,7 +86,8 @@ localrules: get_sites, index_sites, make_bamlist
 
 rule all:
 	input:
-		"results/collated_mixture_likes.txt"
+		"results/collated_mixture_likes.txt",
+		"results/chinook-logls-and-depths-fig.pdf"
 		#expand("results/BAMs/{cov}X/rep_{rep}/{s}.bam", cov=COVIES, rep = REPLIST, s=SAMPS),
 		#expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz", 
 		#	mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST)
@@ -260,4 +261,24 @@ rule collate_mixture_likes:
 		" for i in {input}; do awk -v file=$i '{{print file, ++n, $0}}' $i; done > {output} "
 
 
+# this is a stupid little rule to get the order of the BAMs in the
+# output.
+rule get_sample_order:
+	params: 
+		names = expand("{s}", s=SAMPS)
+	output:
+		"results/sample_order.txt"
+	shell:
+		"for i in {params.names}; do echo $i; done > {output} "
 
+
+rule make_plot:
+	input:
+		sample_info="BAMs/sample_info.tsv",
+		sample_order="results/sample_order.txt",
+		sim_output="results/collated_mixture_likes.txt"
+	output:
+		outfig="results/chinook-logls-and-depths-fig.pdf"
+	envmodules: "R/4.0.3"
+	script:
+		"scripts/make-plots.R"
