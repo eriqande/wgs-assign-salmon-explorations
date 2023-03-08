@@ -63,9 +63,9 @@ g <- ggplot(fp2, aes(y = samp_name_f, x = logl_to_correct_pop, fill = `Average \
   geom_point(shape = 21) +
   scale_x_continuous(trans = scales::pseudo_log_trans(sigma = 1, base = 10), breaks = c(-5, -3, 0, 2, 5, 10, 25, 50, 100, 500, 2000, 5000, 50000)) +
   xlab("Log (base e) likelihood ratio for assignment to correct population") +
-  ylab("Population: Sample_ID (original depth)") +
+  ylab("Population: Sample_ID (Full Depth)") +
   scale_fill_manual(
     values = c(rainbow(n = length(levels(fp2$`Average \nRead Depth`)) - 1), "black")
   )
     
-ggsave(g, filename = outfig, width = 9, height = 6)
+ggsave(g, filename = outfig, width = 9, height = 4)
