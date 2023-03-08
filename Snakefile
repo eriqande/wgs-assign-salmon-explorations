@@ -64,6 +64,20 @@ MPRUN="filt_snps05_miss30"
 # reference sample file is from
 # --> reference/{mprun}/ref_pops.tsv
 
+# the BAM files named according to SAMPS + rmdup.bam and
+# also their indexes
+
+# A TSV file giving information about the mixture samples
+# with columns: vcf_name NMFS_DNA_ID ref_pop group original_depth
+# --> BAMs/sample_info.txt
+# that looks like this:
+# vcf_name            NMFS_DNA_ID ref_pop group   original_depth
+# DPCh_plate1_G03_S75 T145116     Klamath mixture         1.33  
+# DPCh_plate1_A03_S3  T145109     Klamath mixture         0.195 
+# DPCh_plate1_H03_S87 T145117     Klamath mixture         0.149 
+# ...
+
+
 
 
 #### Snakefile Rules   #####
@@ -82,14 +96,14 @@ rule thin_bam:
 	input:
 		bam="BAMs/full-depth/{samp}.rmdup.bam",
 		bai="BAMs/full-depth/{samp}.rmdup.bam.bai",
-		dps="BAMs/coverages.tsv"
+		dps="BAMs/sample_info.tsv"
 	output:
 		bam="results/BAMs/{cov}X/rep_{rep}/{samp}.bam",
 		bai="results/BAMs/{cov}X/rep_{rep}/{samp}.bam.bai",
 	conda:
 		"envs/samtools.yaml"
 	shell:
-		" OPT=$(awk '/{wildcards.samp}/ {{ wc = \"{wildcards.cov}\"; if(wc == \"FD\") {{print \"NOSAMPLE\"; exit}} fract = wc / $2; if(fract < 1) print fract; else print \"NOSAMPLE\"; }}' {input.dps});  "
+		" OPT=$(awk '/{wildcards.samp}/ {{ wc = \"{wildcards.cov}\"; if(wc == \"FD\") {{print \"NOSAMPLE\"; exit}} fract = wc / $NF; if(fract < 1) print fract; else print \"NOSAMPLE\"; }}' {input.dps});  "
 		" if [ $OPT = \"NOSAMPLE\" ]; then "
 		"     ln -sr {input.bam} {output.bam}; "
 		"     ln -sr {input.bai} {output.bai}; " 
@@ -123,7 +137,7 @@ rule get_sites:
 		chroms="results/sites/{mprun}.chroms"
 	shell:
 		"zcat {input.beag} | awk 'NR>1 {{print $1, $2, $3}}' | sed 's/_/ /g; s/-/_/g;' | "
-        " awk '{{printf(\"%s\t%s\t%s\t%s\n\", $1, $2, $3, $4);}}' > {output.sites}; "
+        " awk '{{printf(\"%s\\t%s\\t%s\\t%s\\n\", $1, $2, $3, $4);}}' > {output.sites}; "
 		" cut -f1 {output.sites} | sort | uniq > {output.chroms} "
 
 rule index_sites:
