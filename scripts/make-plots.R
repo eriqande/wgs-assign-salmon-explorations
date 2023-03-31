@@ -66,6 +66,7 @@ g <- ggplot(fp2, aes(y = samp_name_f, x = logl_to_correct_pop, fill = `Average \
   ylab("Population: Sample_ID (Full Depth)") +
   scale_fill_manual(
     values = c(rainbow(n = length(levels(fp2$`Average \nRead Depth`)) - 1), "black")
-  )
+  ) +
+  theme_bw()
     
 ggsave(g, filename = outfig, width = 9, height = 4)
