@@ -220,7 +220,7 @@ rule count_snps_in_mixture_indivs:
 		snps_in_indivs="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/snps_in_indivs.tsv",
 		indivs_with_reads="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/indivs_with_reads.tsv",
 	shell:
-		"./scripts/count-snps.sh {input} {output.snps_in_indivs} {output.indivs_with_reads} 2> " 
+		"./scripts/count-snps.sh {input} {output.snps_in_indivs} {output.indivs_with_reads} " 
 
 
 rule get_wgs_assign_installed:
