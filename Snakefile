@@ -87,7 +87,9 @@ localrules: get_sites, index_sites, make_bamlist
 rule all:
 	input:
 		"results/collated_mixture_likes.txt",
-		"results/chinook-logls-and-depths-fig.pdf"
+		"results/chinook-logls-and-depths-fig.pdf",
+		"results/snps_in_indivs.tsv",
+		"results/indivs_with_reads.tsv"
 		#expand("results/BAMs/{cov}X/rep_{rep}/{s}.bam", cov=COVIES, rep = REPLIST, s=SAMPS),
 		#expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz", 
 		#	mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST)
@@ -202,6 +204,25 @@ rule concordify_beagle_files:
 		" awk 'BEGIN {{OFS=\"\\t\"}} NF==1 {{g[$1]++; next}} /^marker/ || ($1 in g) {{print}}' | gzip -c > {output.ref_beagle} "
 	
 
+
+# this rule is here to address a referee comment.  They were
+# curious about how many SNPs were involved in the different
+# levels of downsampling.  I am going to go one further than that---
+# I want to record both the total number of SNPs, as well as, for each
+# individual, the number of SNPs that actually have data---i.e. the number
+# that don't have flat likelihoods.  Maybe a better summary would be the number
+# of SNPs that have only 1, 2, 3, individuals observed at them.  That would
+# be an easier summary.  WE can grab that with an awk script.
+rule count_snps_in_mixture_indivs:
+	input: 
+		mix_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/mix.beagle.gz"
+	output:
+		snps_in_indivs="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/snps_in_indivs.tsv",
+		indivs_with_reads="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/indivs_with_reads.tsv",
+	shell:
+		"./scripts/count-snps.sh {input} {output.snps_in_indivs} {output.indivs_with_reads} 2> " 
+
+
 rule get_wgs_assign_installed:
 	output:
 		"results/wgs_assign_test.txt"
@@ -259,6 +280,21 @@ rule collate_mixture_likes:
 		"results/collated_mixture_likes.txt"
 	shell:
 		" for i in {input}; do awk -v file=$i '{{print file, ++n, $0}}' $i; done > {output} "
+
+
+rule collate_snp_counts:
+	input:
+		snps_in_indivs=expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/snps_in_indivs.tsv",
+			mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST),
+		indivs_with_reads=expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/indivs_with_reads.tsv",
+			mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST)
+	output:
+		snps_in_indivs="results/snps_in_indivs.tsv",
+		indivs_with_reads="results/indivs_with_reads.tsv"
+	shell:
+		" for i in {input.snps_in_indivs}; do awk -v file=$i 'BEGIN {{OFS=\"\t\"; print \"file\tindiv_idx\tnum_snps\" }} {{print file, $0}}' $i; done > {output.snps_in_indivs}; "
+		" for i in {input.indivs_with_reads}; do awk -v file=$i 'BEGIN {{OFS=\"\t\"; print \"file\tnum_indivs_with_data\tnum_snps\" }} {{print file, $0}}' $i; done > {output.indivs_with_reads}; "
+
 
 
 # this is a stupid little rule to get the order of the BAMs in the
