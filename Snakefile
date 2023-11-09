@@ -292,8 +292,8 @@ rule collate_snp_counts:
 		snps_in_indivs="results/snps_in_indivs.tsv",
 		indivs_with_reads="results/indivs_with_reads.tsv"
 	shell:
-		" for i in {input.snps_in_indivs}; do awk -v file=$i 'BEGIN {{OFS=\"\t\"; print \"file\tindiv_idx\tnum_snps\" }} {{print file, $0}}' $i; done > {output.snps_in_indivs}; "
-		" for i in {input.indivs_with_reads}; do awk -v file=$i 'BEGIN {{OFS=\"\t\"; print \"file\tnum_indivs_with_data\tnum_snps\" }} {{print file, $0}}' $i; done > {output.indivs_with_reads}; "
+		" (printf \"file\tindiv_idx\tnum_snps\n\"; for i in {input.snps_in_indivs}; do awk -v file=$i 'BEGIN {{OFS=\"\t\"; }} {{print file, $0}}' $i; done) > {output.snps_in_indivs}; "
+		" (printf \"file\tnum_indivs_with_data\tnum_snps\n\"; for i in {input.indivs_with_reads}; do awk -v file=$i 'BEGIN {{OFS=\"\t\";  }} {{print file, $0}}' $i; done) > {output.indivs_with_reads}; "
 
 
 
