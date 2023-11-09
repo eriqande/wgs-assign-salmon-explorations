@@ -26,11 +26,9 @@ NR > 1 {
 END {
   # now, we need to print these things out
   # first do the distribution of the number of individuals for each SNP
-  printf("num_indivs_with_data\tnum_snps\n") > out1
   for(i=0;i<=nindiv;i++) printf("%d\t%d\n", i, snps[i]) > out1;
 
   # and now print out the number of SNPs for each of the individuals
-  printf("indiv_idx\tnum_snps\n") > out2
   for(i=1;i<=nindiv;i++) printf("%d\t%d\n", i, indiv_snp_counts[i]) > out2;
 }
 '
