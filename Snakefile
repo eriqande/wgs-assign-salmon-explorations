@@ -287,7 +287,7 @@ rule collate_snp_counts:
 	output:
 		snps_in_indivs="results/snps_in_indivs.tsv",
 	shell:
-		" (printf \"file\tindiv_idx\tnum_snps\n\"; for i in {input.snps_in_indivs}; do awk -v file=$i 'BEGIN {{OFS=\"\t\"; }} {{print file, $0}}' $i; done) > {output.snps_in_indivs}; "
+		" (printf \"file\tindiv_idx\tnum_snps\ttot_snps\n\"; for i in {input.snps_in_indivs}; do awk -v file=$i 'BEGIN {{OFS=\"\t\"; }} {{print file, $0}}' $i; done) > {output.snps_in_indivs}; "
 
 
 
