@@ -218,9 +218,8 @@ rule count_snps_in_mixture_indivs:
 		mix_beagle="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/mix.beagle.gz"
 	output:
 		snps_in_indivs="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/snps_in_indivs.tsv",
-		indivs_with_reads="results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/indivs_with_reads.tsv",
 	shell:
-		"./scripts/count-snps.sh {input} {output.snps_in_indivs} {output.indivs_with_reads} " 
+		"./scripts/count-snps.sh {input} {output.snps_in_indivs} " 
 
 
 rule get_wgs_assign_installed:
@@ -285,15 +284,11 @@ rule collate_mixture_likes:
 rule collate_snp_counts:
 	input:
 		snps_in_indivs=expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/snps_in_indivs.tsv",
-			mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST),
-		indivs_with_reads=expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/indivs_with_reads.tsv",
 			mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST)
 	output:
 		snps_in_indivs="results/snps_in_indivs.tsv",
-		indivs_with_reads="results/indivs_with_reads.tsv"
 	shell:
 		" (printf \"file\tindiv_idx\tnum_snps\n\"; for i in {input.snps_in_indivs}; do awk -v file=$i 'BEGIN {{OFS=\"\t\"; }} {{print file, $0}}' $i; done) > {output.snps_in_indivs}; "
-		" (printf \"file\tnum_indivs_with_data\tnum_snps\n\"; for i in {input.indivs_with_reads}; do awk -v file=$i 'BEGIN {{OFS=\"\t\";  }} {{print file, $0}}' $i; done) > {output.indivs_with_reads}; "
 
 
 
@@ -308,6 +303,8 @@ rule get_sample_order:
 		"for i in {params.names}; do echo $i; done > {output} "
 
 
+
+# this rule also makes the supplementary table
 rule make_plot:
 	input:
 		sample_info="BAMs/sample_info.tsv",
