@@ -89,7 +89,6 @@ rule all:
 		"results/collated_mixture_likes.txt",
 		"results/chinook-logls-and-depths-fig.pdf",
 		"results/snps_in_indivs.tsv",
-		"results/indivs_with_reads.tsv"
 		#expand("results/BAMs/{cov}X/rep_{rep}/{s}.bam", cov=COVIES, rep = REPLIST, s=SAMPS),
 		#expand("results/angsd_beagle/{mprun}/{cov}X/rep_{rep}/ref.beagle.gz", 
 		#	mprun=["filt_snps05_miss30"], cov=COVIES, rep=REPLIST)
