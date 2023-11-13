@@ -22,7 +22,7 @@ NR > 1 {
 END {
   # now, we need to print these things out
   # first do the distribution of the number of individuals for each SNP
-  for(i=0;i<=nindiv;i++) printf("%d\t%d\n", i, snps[i]) > out1;
+  for(i=1;i<=nindiv;i++) printf("%d\t%d\n", i, indiv_snp_counts[i]) > out1;
 }
 '
 
